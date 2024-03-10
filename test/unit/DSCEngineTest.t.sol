@@ -2,10 +2,10 @@
 pragma solidity ^0.8.18;
 
 import {Test} from "forge-std/Test.sol";
-import {DeployDSC} from "@/script/DeployDSC.s.sol";
-import {DecentralizedStableCoin} from "@/src/DecentralizedStableCoin.sol";
-import {DSCEngine} from "@/src/DSCEngine.sol";
-import {HelperConfig} from "@/script/HelperConfig.s.sol";
+import {DeployDSC} from "script/DeployDSC.s.sol";
+import {DecentralizedStableCoin} from "src/DecentralizedStableCoin.sol";
+import {DSCEngine} from "src/DSCEngine.sol";
+import {HelperConfig} from "script/HelperConfig.s.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract DSCEngineTest is Test {
@@ -28,6 +28,17 @@ contract DSCEngineTest is Test {
         (dsc, engine, config) = deployer.run();
         (ethUsdPriceFeed, wbtcUsdPriceFeed, weth, wbtc, ) = config.activeNetworkConfig();
         ERC20Mock(weth).mint(USER, STARTING_ERC20_BALANCE);
+    }
+
+    ///////////////////////
+    // Constructor Tests //
+    ///////////////////////
+
+    function testRevertsIfTokenLengthDoesntMatchPriceFeeds() public {
+        address[] memory tokenAddresses = new address[](1);
+        address[] memory priceFeedAddresses = new address[](2);
+        vm.expectRevert(DSCEngine.DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength.selector);
+        new DSCEngine(tokenAddresses, priceFeedAddresses, address(dsc));
     }
 
     /////////////////
