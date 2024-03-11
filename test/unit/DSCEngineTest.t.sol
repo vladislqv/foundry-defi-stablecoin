@@ -33,6 +33,7 @@ contract DSCEngineTest is Test {
         (ethUsdPriceFeed, wbtcUsdPriceFeed, weth, wbtc,) = config.activeNetworkConfig();
         ERC20Mock(weth).mint(USER, STARTING_ERC20_BALANCE);
         ERC20Mock(wbtc).mint(USER, STARTING_ERC20_BALANCE);
+        ERC20Mock(weth).mint(LIQUIDATOR, STARTING_ERC20_BALANCE);
         AMOUNT_DSC_MINTED = engine.getUsdValue(weth, AMOUNT_COLLATERAL) / 2 - 1 ether;
     }
 
@@ -226,6 +227,22 @@ contract DSCEngineTest is Test {
     function testSuccessFullLiquidation() public depositedCollateral mintDsc updateEthPrice(3000e8) mintDscToLiquidator {
         vm.startPrank(LIQUIDATOR);
         dsc.approve(address(engine), AMOUNT_DSC_MINTED);
+        engine.liquidate(weth, USER, AMOUNT_DSC_MINTED / 2);
+        vm.stopPrank();
+    }
+
+    function testRevertIfTheLiquidatorHealthFactorIsBroken() public depositedCollateral mintDsc {
+        vm.startPrank(LIQUIDATOR);
+        ERC20Mock(weth).approve(address(engine), AMOUNT_COLLATERAL);
+        engine.depositCollateral(weth, AMOUNT_COLLATERAL);
+        engine.mintDsc(AMOUNT_DSC_MINTED);
+        vm.stopPrank();
+
+        MockV3Aggregator(ethUsdPriceFeed).updateAnswer(3000e8);
+
+        vm.startPrank(LIQUIDATOR);
+        dsc.approve(address(engine), AMOUNT_DSC_MINTED);
+        vm.expectRevert();
         engine.liquidate(weth, USER, AMOUNT_DSC_MINTED / 2);
         vm.stopPrank();
     }
